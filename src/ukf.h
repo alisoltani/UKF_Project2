@@ -25,8 +25,14 @@ public:
   ///* state vector: [pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
   VectorXd x_;
 
+  ///* state vector: [pos1 pos2 vel_abs yaw_angle yaw_rate, nu, psi] in SI units and rad
+  VectorXd x_aug_;
+
   ///* state covariance matrix
   MatrixXd P_;
+
+  ///* state covariance matrix
+  MatrixXd P_aug_;
 
   ///* predicted sigma points matrix
   MatrixXd Xsig_pred_;
@@ -35,25 +41,25 @@ public:
   long long time_us_;
 
   ///* Process noise standard deviation longitudinal acceleration in m/s^2
-  double std_a_;
+  double var_a_;
 
   ///* Process noise standard deviation yaw acceleration in rad/s^2
-  double std_yawdd_;
+  double var_yawdd_;
 
   ///* Laser measurement noise standard deviation position1 in m
-  double std_laspx_;
+  double var_laspx_;
 
   ///* Laser measurement noise standard deviation position2 in m
-  double std_laspy_;
+  double var_laspy_;
 
   ///* Radar measurement noise standard deviation radius in m
-  double std_radr_;
+  double var_radr_;
 
   ///* Radar measurement noise standard deviation angle in rad
-  double std_radphi_;
+  double var_radphi_;
 
   ///* Radar measurement noise standard deviation radius change in m/s
-  double std_radrd_ ;
+  double var_radrd_ ;
 
   ///* Weights of sigma points
   VectorXd weights_;
@@ -66,6 +72,16 @@ public:
 
   ///* Sigma point spreading parameter
   double lambda_;
+
+  ///* Radar measurement noise covariance matrix
+  MatrixXd R_radar_;
+
+  ///* Lidar measurement noise covariance matrix
+  MatrixXd R_lidar_;
+
+  double NIS_lidar_;
+
+  double NIS_radar_;
 
 
   /**
@@ -102,6 +118,38 @@ public:
    * @param meas_package The measurement at k+1
    */
   void UpdateRadar(MeasurementPackage meas_package);
+
+private:
+
+  ///* Sigma points matrix
+  MatrixXd X_sigma_aug_;
+
+  /**
+   * Generates the sigma points for UKF
+   */
+  void GenerateSigmaPoints();
+
+  /**
+   * Predict the sigma points for UKF
+   */
+  void PredictSigmaPoints(double delta_t);
+
+  /**
+   * Predict the mean and covariance of the sigma points for UKF
+   */
+  void PredictMeanAndCovariance();
+
+  /**
+   * Process model used in UKF
+   */
+  void ProcessModel(double delta_t, int i);
+
+  /**
+   * UKF measurement updates
+   */
+  void UpdateUKF(MeasurementPackage meas_package, MatrixXd Zsig, int n_z_);
+
+
 };
 
 #endif /* UKF_H */
