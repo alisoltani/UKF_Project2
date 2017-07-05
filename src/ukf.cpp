@@ -185,11 +185,11 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
   // TODO: try to generate new sigma points instead of just using the ones we got from
   // prediction
 
-  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR && use_radar_) {
     // Radar
     UpdateRadar(measurement_pack);
 
-  } else {
+  } else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER && use_laser_){
     // Lidar
     UpdateLidar(measurement_pack);
   }
