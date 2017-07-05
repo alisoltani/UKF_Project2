@@ -42,20 +42,25 @@ The final step for prediction is to calculate the weighted mean and covariance o
 ### Update
 After prediction, if the data is coming from the lidar we use a simple update function and compare the x and y position to those coming from the model for the all sigma points. However if the data comes from the radar, since it is nonlinear and uses polar coordinates, we need to first change to polar coordinates and then compare all sigma points.
 
-Finally the NIS for lidar and radar sensors are calculated to evaluate the consistency of the parameters and the last few output values are shown below
+Finally the NIS for lidar and radar sensors are calculated to evaluate the consistency of the parameters and the last few output values are shown below:
+
 ![Alt text](data/NIS.JPG)
 
 
 # Final code and results
+## Full UKF
 The code for this project is found under src directory, and a video has been captured to see the performance of kalman filtering (UKF_test.mp4). The final result is shown here. It can be seen that the falls below the maximum range in the rubric of RMSE <= [.09, .10, .40, .30].
 ![Alt text](data/UKF.JPG)
 
+## Lidar only 
 Tests were done using only lidar and only radar measurements, which resulted in degraded performance. For example, using only lidar degraded the performance to:
 ![Alt text](data/UKF_lidar_only.JPG)
 
+## Radar only
 In the case of only using the radar the performance degradation is as follows
 ![Alt text](data/UKF_radar_only.JPG)
 
+## Sensor choice discussion
 It is interesting to compare these two cases. Using only lidar obtains better estimates on x and y compared to using only radar (although degraded compared to using both), but using radar only has better estimates on the speed in x and y direction. This is not unexpected as while lidar has better spatial resolution (and can give better estimates for x and y), it does not generate any speed information. The radar, using Doppler, does so it is capable of providing better speed estimates.
 
 Obviously combining these two sensors greatly improves the performance, as the benefits of better position and speed compound.
