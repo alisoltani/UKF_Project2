@@ -194,9 +194,9 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
     UpdateLidar(measurement_pack);
   }
 
-  // print the output
-  //cout << "x_ = " << x_ << endl;
-  //cout << "P_ = " << P_ << endl;
+  // print the normalized innovation squared
+  cout << "NIS_radar_ = " << NIS_radar_ << endl;
+  cout << "NIS_lidar_" << NIS_lidar_ << endl;
 }
 
 /**
