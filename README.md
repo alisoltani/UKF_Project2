@@ -1,81 +1,61 @@
-# Unscented Kalman Filter Project Starter Code
-Self-Driving Car Engineer Nanodegree Program
+# Unscented Kalman Filter 
 
-In this project utilize an Unscented Kalman Filter to estimate the state of a moving object of interest with noisy lidar and radar measurements. Passing the project requires obtaining RMSE values that are lower that the tolerance outlined in the project reburic. 
+In this project, I utilize an Unscented Kalman Filter to estimate the state of a moving object of interest with noisy lidar and radar measurements. The radar measurements are provided in polar coordinates and includes speed data (from Doppler effect), while the lidar measurements only provide position data and no speed information.
 
-This project involves the Term 2 Simulator which can be downloaded [here](https://github.com/udacity/self-driving-car-sim/releases)
+The process flow used in this project is as follows:
+![Alt text](data/FusionFlow.png)
 
-This repository includes two files that can be used to set up and intall [uWebSocketIO](https://github.com/uWebSockets/uWebSockets) for either Linux or Mac systems. For windows you can use either Docker, VMware, or even [Windows 10 Bash on Ubuntu](https://www.howtogeek.com/249966/how-to-install-and-use-the-linux-bash-shell-on-windows-10/) to install uWebSocketIO. 
+## Building
+To build:
+* mkdir/cd build
+* cmake ..
+* make
+* run ./UnscentedKF
+* start the simulator found from [here](https://github.com/udacity/self-driving-car-sim/releases)
 
-Once the install for uWebSocketIO is complete, the main program can be built and ran by doing the following from the project top directory.
-
-1. mkdir build
-2. cd build
-3. cmake ..
-4. make
-5. ./UnscentedKF
-
-Note that the programs that need to be written to accomplish the project are src/ukf.cpp, src/ukf.h, tools.cpp, and tools.h
-
-The program main.cpp has already been filled out, but feel free to modify it.
-
-Here is the main protcol that main.cpp uses for uWebSocketIO in communicating with the simulator.
+## Vehicle model
+In this project, instead of using a constant velocity (CV) model as EKF, a constant turn rate and velocity magnitude model (CTRV) is used, to better model the driving behavior. The code for this model is found in ukf.cpp under UKF::ProcessModel (lines 314-347). This follows the suggestions to prevent errors when the yaw_rate is too small.
 
 
-INPUT: values provided by the simulator to the c++ program
+## Initialization/First measurement
+The code for initlizing the kalman filter is found in the ukf.cpp file, lines 102 - 165. Depending on the type of sensor we get our first measurement from, we initilize and save the timestamp to be able to record \delta t for later calculations.
 
-["sensor_measurement"] => the measurment that the simulator observed (either lidar or radar)
+The initilization values here have been chosen by trial and error, this combination give adequate performance and matches the project rubric.
+
+The F, P are also initilized. 
+
+The weights for the sigma points are also calculated. Finally a check is done to ensure that the initial values are not too small.
+
+## Kalman filter flow
+The flow used for the unscented kalman filter is shown below:
+![Alt text](data/ukfFlow.JPG)
+
+### Prediction
+After the first measurement, each time step starts with a prediction. In the unscented filter, instead of linearizing the model around one point like done in the EKF (which works for slightly nonlinear systems, but has problems for more nonlinear systems), a bunch of "sigma" points are generated from the a priori distribution, and tracked through the nonlinear model to later to approximate the now non-gaussian distribution with a gaussian one - calculating the mean and variance of the new pdf. 
+
+The sigma points are generated in UKF::GenerateSigmaPoints in ukf.cpp lines 263-284. Since the noise is effected by the models nonlinearity, we augment/increase the state size to track the noise behavior. The points are generated in a matter to best capture the pdf behavior. Given enough sigma points, the new non-gaussian pdf can be approximated.
+
+The next step is to evaluate the sigma points with respect to the model, to see where these points end up after the nonlinearity. This is done in UKF::PredictSigmaPoints and lines 286-293 in ukf.cpp. 
+
+The final step for prediction is to calculate the weighted mean and covariance of these sigma points. This is done in the UKF::PredictMeanAndCovariance method in the ukf.cpp file, lines 295-312. Normalizing the angle between pi and -pi is the only important trick that is needed here.
+
+### Update
+After prediction, if the data is coming from the lidar we use a simple update function and compare the x and y position to those coming from the model for the all sigma points. However if the data comes from the radar, since it is nonlinear and uses polar coordinates, we need to first change to polar coordinates and then compare all sigma points.
+
+Finally the NIS for lidar and radar sensors are calculated to evaluate the consistency of the parameters and the last few output values are shown below
+![Alt text](data/NIS.JPG)
 
 
-OUTPUT: values provided by the c++ program to the simulator
+# Final code and results
+The code for this project is found under src directory, and a video has been captured to see the performance of kalman filtering (UKF_test.mp4). The final result is shown here. It can be seen that the falls below the maximum range in the rubric of RMSE <= [.09, .10, .40, .30].
+![Alt text](data/UKF.JPG)
 
-["estimate_x"] <= kalman filter estimated position x
-["estimate_y"] <= kalman filter estimated position y
-["rmse_x"]
-["rmse_y"]
-["rmse_vx"]
-["rmse_vy"]
+Tests were done using only lidar and only radar measurements, which resulted in degraded performance. For example, using only lidar degraded the performance to:
+![Alt text](data/UKF_lidar_only.JPG)
 
----
+In the case of only using the radar the performance degradation is as follows
+![Alt text](data/UKF_radar_only.JPG)
 
-## Other Important Dependencies
+It is interesting to compare these two cases. Using only lidar obtains better estimates on x and y compared to using only radar (although degraded compared to using both), but using radar only has better estimates on the speed in x and y direction. This is not unexpected as while lidar has better spatial resolution (and can give better estimates for x and y), it does not generate any speed information. The radar, using Doppler, does so it is capable of providing better speed estimates.
 
-* cmake >= v3.5
-* make >= v4.1
-* gcc/g++ >= v5.4
-
-## Basic Build Instructions
-
-1. Clone this repo.
-2. Make a build directory: `mkdir build && cd build`
-3. Compile: `cmake .. && make`
-4. Run it: `./UnscentedKF path/to/input.txt path/to/output.txt`. You can find
-   some sample inputs in 'data/'.
-    - eg. `./UnscentedKF ../data/obj_pose-laser-radar-synthetic-input.txt`
-
-## Editor Settings
-
-We've purposefully kept editor configuration files out of this repo in order to
-keep it as simple and environment agnostic as possible. However, we recommend
-using the following settings:
-
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
-
-## Code Style
-
-Please stick to [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html) as much as possible.
-
-## Generating Additional Data
-
-This is optional!
-
-If you'd like to generate your own radar and lidar data, see the
-[utilities repo](https://github.com/udacity/CarND-Mercedes-SF-Utilities) for
-Matlab scripts that can generate additional data.
-
-## Project Instructions and Rubric
-
-This information is only accessible by people who are already enrolled in Term 2
-of CarND. If you are enrolled, see [the project page](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/0949fca6-b379-42af-a919-ee50aa304e6a/lessons/c3eb3583-17b2-4d83-abf7-d852ae1b9fff/concepts/f437b8b0-f2d8-43b0-9662-72ac4e4029c1)
-for instructions and the project rubric.
+Obviously combining these two sensors greatly improves the performance, as the benefits of better position and speed compound.
